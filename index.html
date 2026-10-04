@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tunely</title>
+  <meta name="theme-color" content="#121212">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">♫ Tunely</div>
+      <nav>
+        <button class="nav-btn active" data-view="home">⌂ <span>Home</span></button>
+        <button class="nav-btn" data-view="search">⌕ <span>Search</span></button>
+        <button class="nav-btn" data-view="library">▤ <span>Your Library</span></button>
+      </nav>
+      <div class="sidebar-section">
+        <div class="sidebar-head">
+          <span>Playlists</span>
+          <button id="new-playlist" class="icon-btn" title="Create playlist">＋</button>
+        </div>
+        <button class="playlist-link" data-view="liked">♥ Liked Songs</button>
+        <button class="playlist-link" data-view="local">📁 Local Files</button>
+        <div id="playlist-list"></div>
+      </div>
+    </aside>
+
+    <main class="main" id="main"></main>
+
+    <aside class="queue-panel hidden" id="queue-panel">
+      <div class="sidebar-head"><span>Queue</span><button class="icon-btn" id="close-queue">✕</button></div>
+      <div id="queue-list"></div>
+    </aside>
+  </div>
+
+  <footer class="player">
+    <div class="now-playing">
+      <img id="np-art" class="art" alt="">
+      <div class="np-text">
+        <div id="np-title" class="np-title">Nothing playing</div>
+        <div id="np-artist" class="np-artist">Pick a song to start</div>
+      </div>
+      <button id="np-like" class="icon-btn like" title="Like">♡</button>
+    </div>
+    <div class="controls">
+      <div class="buttons">
+        <button id="shuffle" class="icon-btn" title="Shuffle">⇄</button>
+        <button id="prev" class="icon-btn" title="Previous">⏮</button>
+        <button id="play" class="play-btn" title="Play">▶</button>
+        <button id="next" class="icon-btn" title="Next">⏭</button>
+        <button id="repeat" class="icon-btn" title="Repeat">↻</button>
+      </div>
+      <div class="progress">
+        <span id="cur-time">0:00</span>
+        <input id="seek" type="range" min="0" max="1000" value="0">
+        <span id="dur-time">0:00</span>
+      </div>
+    </div>
+    <div class="extras">
+      <button id="queue-btn" class="icon-btn" title="Queue">☰</button>
+      <button id="mute" class="icon-btn" title="Mute">🔊</button>
+      <input id="volume" type="range" min="0" max="100" value="80">
+    </div>
+  </footer>
+
+  <audio id="audio" preload="metadata"></audio>
+  <input id="file-input" type="file" accept="audio/*" multiple hidden>
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
