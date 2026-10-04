@@ -14,7 +14,9 @@ New builds install as an update over the old one, so your likes and playlists ar
 ## Features
 
 - **Home**: trending songs, filterable by genre
-- **Search**: full-length songs from [Audius](https://audius.co), a free, legal music platform
+- **Search**: full-length songs from [Audius](https://audius.co), [Jamendo](https://www.jamendo.com) or the
+  [Internet Archive](https://archive.org/details/audio)
+- **Live Radio**: 50,000+ real stations worldwide (Top 40, hip-hop, country, news…) from [Radio Browser](https://www.radio-browser.info)
 - **Liked Songs** and **Playlists**: create, rename, delete, add/remove songs (saved in your browser)
 - **Local Files**: play MP3/M4A/WAV/FLAC/OGG files from your own device
 - **Player**: play/pause, next/previous, shuffle, repeat (all / one), seek, volume, queue panel
@@ -47,13 +49,31 @@ Or run `npx cap open android` to open the project in Android Studio and press �
 The app is signed with a test key stored in the repo (`android/app/tunely-debug.keystore`) so every build can update the
 installed app. Make your own private key before publishing to the Google Play Store.
 
-## Why not Spotify or YouTube Music?
+## Where the music comes from
 
-- **Spotify**'s API only plays full songs through its own Web Playback SDK, which requires every listener to log in
-  with Spotify **Premium** and you to register a developer app. It can be added later as an extra source.
-- **YouTube Music** has no public playback API; downloading or streaming its audio breaks YouTube's Terms of Service.
+All sources are free and legal, and everything plays inside Tunely.
 
-Audius gives full-length tracks for free with no key, so it's the source used here.
+| Source | What you get | Setup |
+| --- | --- | --- |
+| **Audius** | Full songs from independent artists, trending charts by genre | None |
+| **Live Radio** (Radio Browser) | 50,000+ live stations, including mainstream hits stations | None |
+| **Jamendo** | 600,000+ full songs from independent artists (Creative Commons) | Free Client ID, see below |
+| **Internet Archive** | Live concerts (e.g. Grateful Dead), classic and public-domain recordings | None |
+| **Your files** | MP3/M4A/WAV/FLAC/OGG from your device | None |
+
+### Jamendo Client ID (one time, free)
+
+1. Sign up at [devportal.jamendo.com](https://devportal.jamendo.com/) and create an app (any name).
+2. Copy its **Client ID**.
+3. In Tunely: **Search → Jamendo**, paste it and tap **Save**. It's stored on your device.
+
+Spotify, Apple Music, YouTube Music and Deezer aren't included: they only allow full songs inside their own apps
+(or for paying developers), so a third-party app can't play them.
+
+### Radio note
+
+Many stations stream over plain `http://`. The Android app plays them all; the website version only lists `https://`
+stations, because browsers block insecure audio on secure pages.
 
 ## Files
 
@@ -61,7 +81,8 @@ Audius gives full-length tracks for free with no key, so it's the source used he
 | --- | --- |
 | `www/index.html` | Page layout: sidebar, main area, queue, player bar |
 | `www/styles.css` | Dark Spotify-like theme and phone layout |
-| `www/app.js` | Music API, playback, playlists, likes, local files, Android back button |
+| `www/app.js` | Audius, playback, screens, playlists, likes, local files, Android back button |
+| `www/sources.js` | Live radio, Jamendo and Internet Archive |
 | `android/` | Android app project ([Capacitor](https://capacitorjs.com) wraps the web app into an APK) |
 | `assets/` | Source app icon and splash image |
 | `.github/workflows/android.yml` | Builds the APK on GitHub and publishes it to Releases |

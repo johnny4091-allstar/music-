@@ -3,6 +3,7 @@
   "appName": "Tunely",
   "webDir": "www",
   "android": {
-    "backgroundColor": "#121212"
+    "backgroundColor": "#121212",
+    "allowMixedContent": true
   }
 }

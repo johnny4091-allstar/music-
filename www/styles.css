@@ -151,6 +151,23 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .empty { color: var(--muted); padding: 24px 0; }
 .status { color: var(--muted); padding: 12px 0; }
 
+/* Sources */
+.card .ph.tile { color: #fff; font-size: 56px; }
+.setup { max-width: 640px; line-height: 1.5; }
+.setup a { color: var(--accent); }
+.steps { padding-left: 20px; color: var(--muted); }
+.steps b { color: var(--text); }
+.steps li { margin-bottom: 8px; }
+.input-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.input-row .search-box { flex: 1; min-width: 200px; }
+code { background: #242424; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--text); }
+.notice { background: #2a2416; border: 1px solid #6b5a1e; border-radius: 8px; padding: 10px 14px; color: var(--text); }
+.muted { color: var(--muted); font-size: 14px; }
+a.btn { color: inherit; text-decoration: none; display: inline-block; }
+.btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.progress.live #dur-time { color: #e91429; font-weight: 700; }
+.progress.live input { opacity: .35; cursor: default; }
+
 /* Player */
 .player {
   height: calc(var(--player-h) + var(--safe-bottom));
@@ -199,7 +216,8 @@ input[type=range] { accent-color: var(--accent); cursor: pointer; }
   .sidebar { width: 100%; padding: 8px; border-radius: 0; overflow: visible; }
   .brand, .sidebar-section { display: none; }
   .sidebar nav { display: flex; }
-  .nav-btn { justify-content: center; gap: 6px; font-size: 14px; white-space: nowrap; }
+  .nav-btn { justify-content: center; gap: 4px; font-size: 13px; white-space: nowrap; padding: 10px 4px; }
+  .nav-btn span { overflow: hidden; text-overflow: ellipsis; }
   .main { border-radius: 0; padding: 16px; }
   .queue-panel { position: fixed; inset: var(--safe-top) 0 calc(var(--player-h) + var(--safe-bottom)) 0; width: auto; z-index: 5; border-radius: 0; }
   .player { grid-template-columns: 1fr auto; grid-template-rows: auto auto; padding: 8px 16px calc(8px + var(--safe-bottom)); gap: 4px; }

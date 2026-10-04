@@ -1,5 +1,6 @@
 /* Tunely — a Spotify-style music player.
- * Music comes from Audius (free, full-length, no API key) plus files on your device.
+ * Music comes from Audius (free, full-length, no API key), live radio, Jamendo, the Internet Archive
+ * (see sources.js) and files on your device.
  */
 (() => {
   'use strict';
@@ -7,6 +8,11 @@
   const APP_NAME = 'tunely';
   const FALLBACK_HOST = 'https://discoveryprovider.audius.co';
   const GENRES = ['All', 'Electronic', 'Hip-Hop/Rap', 'Pop', 'R&B/Soul', 'Rock', 'Alternative', 'Lo-Fi', 'House', 'Ambient', 'Jazz'];
+
+  const Sources = window.TunelySources;
+  const RADIO_TAGS = [['', 'Top stations'], ['top 40', 'Top 40'], ['pop', 'Pop'], ['hiphop', 'Hip-Hop'], ['rnb', 'R&B'], ['rock', 'Rock'],
+    ['country', 'Country'], ['dance', 'Dance'], ['latin', 'Latin'], ['jazz', 'Jazz'], ['classical', 'Classical'], ['lofi', 'Lo-Fi'], ['news', 'News']];
+  const SEARCH_SOURCES = [['audius', 'Audius'], ['jamendo', 'Jamendo'], ['archive', 'Internet Archive']];
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const main = $('#main');
@@ -32,6 +38,8 @@
     repeat: store.get('repeat', 'off'), // off | all | one
     view: 'home',
     genre: 'All',
+    radioTag: '',
+    searchSource: store.get('searchSource', 'audius'),
     host: null,
     visibleTracks: [],
   };
@@ -100,7 +108,7 @@
   const searchTracks = (query) => api('/tracks/search', { query, limit: 30 }).then((d) => d.map(toTrack));
 
   async function srcFor(track) {
-    if (track.source === 'local') return track.src;
+    if (track.src) return track.src; // local files, radio, Jamendo, Internet Archive
     const host = await getHost();
     return `${host}/v1/tracks/${encodeURIComponent(track.audiusId)}/stream?app_name=${APP_NAME}`;
   }
@@ -129,12 +137,24 @@
     const t = current();
     if (!t) return;
     audio.src = await srcFor(t);
+    updateNowPlaying();
+    showLive(!!t.live);
     try {
       await audio.play();
+      Sources.countRadioClick(t);
     } catch (err) {
-      if (err.name !== 'AbortError') toast("Couldn't play this track");
+      if (err.name !== 'AbortError' && err.name !== 'NotSupportedError') toast("Couldn't play this one");
     }
-    updateNowPlaying();
+  }
+
+  function showLive(live) {
+    seek.disabled = live;
+    seek.closest('.progress').classList.toggle('live', live);
+    if (live) {
+      seek.value = 0;
+      $('#cur-time').textContent = '';
+      $('#dur-time').textContent = '● LIVE';
+    }
   }
 
   function togglePlay() {
@@ -165,7 +185,7 @@
 
   function prev() {
     if (!state.queue.length) return;
-    if (audio.currentTime > 3) {
+    if (audio.currentTime > 3 && !current()?.live) {
       audio.currentTime = 0;
       return;
     }
@@ -253,7 +273,7 @@
     state.visibleTracks = tracks;
     return `<div class="grid">${tracks.map((t, i) => `
       <div class="card" data-index="${i}" data-id="${esc(t.id)}" role="button" tabindex="0">
-        ${t.art ? `<img src="${esc(t.art)}" alt="" loading="lazy">` : '<div class="ph">♪</div>'}
+        ${t.art ? `<img src="${esc(t.art)}" alt="" loading="lazy">` : `<div class="ph">${t.live ? '📻' : '♪'}</div>`}
         <div class="card-title">${esc(t.title)}</div>
         <div class="card-sub">${esc(t.artist)}</div>
         <button class="card-play" title="Play">▶</button>
@@ -273,14 +293,61 @@
         <h1>${greeting}</h1>
         <div class="chips">${GENRES.map((g) => `<button class="chip${g === state.genre ? ' active' : ''}" data-genre="${esc(g)}">${esc(g)}</button>`).join('')}</div>
         <h2>Trending${state.genre !== 'All' ? ' in ' + esc(state.genre) : ''}</h2>
-        <div id="home-list" class="status">Loading…</div>`;
+        <div id="home-list" class="status">Loading…</div>
+        <h2>Explore more</h2>
+        <div class="grid">
+          <div class="card" data-open="radio" role="button" tabindex="0"><div class="ph tile" style="background:linear-gradient(135deg,#e91429,#f59b23)">📻</div>
+            <div class="card-title">Live Radio</div><div class="card-sub">Top 40, hip-hop, country and more</div></div>
+          <div class="card" data-open="search" data-source="jamendo" role="button" tabindex="0"><div class="ph tile" style="background:linear-gradient(135deg,#0d72ea,#8d67ab)">🎸</div>
+            <div class="card-title">Jamendo</div><div class="card-sub">600,000+ independent songs</div></div>
+          <div class="card" data-open="search" data-source="archive" role="button" tabindex="0"><div class="ph tile" style="background:linear-gradient(135deg,#535353,#a0a0a0)">🏛️</div>
+            <div class="card-title">Internet Archive</div><div class="card-sub">Live concerts and classic recordings</div></div>
+        </div>`;
       try {
+        // Audius tracks have no src; the home grid owns visibleTracks.
         const tracks = await trending(state.genre);
         if (stale()) return;
         $('#home-list').outerHTML = tracks.length ? cards(tracks) : '<div class="empty">No tracks found.</div>';
       } catch {
         if (stale()) return;
-        $('#home-list').innerHTML = "Couldn't reach the music service. Check your connection, or play songs from <b>Local Files</b>.";
+        $('#home-list').innerHTML = "Couldn't reach Audius. Check your connection, or try <b>Live Radio</b> or <b>Local Files</b>.";
+      }
+      return;
+    }
+
+    if (v === 'radio') {
+      const label = (RADIO_TAGS.find(([t]) => t === state.radioTag) || [, 'Stations'])[1];
+      main.innerHTML = `
+        <h1>Live Radio</h1>
+        <input id="radio-input" class="search-box" type="search" placeholder="Search stations (e.g. BBC, KISS FM, jazz)" value="${esc(state.radioQuery || '')}" autocomplete="off">
+        <div class="chips">${RADIO_TAGS.map(([t, l]) => `<button class="chip${!state.radioQuery && t === state.radioTag ? ' active' : ''}" data-radio-tag="${esc(t)}">${esc(l)}</button>`).join('')}</div>
+        <h2>${state.radioQuery ? `Stations matching “${esc(state.radioQuery)}”` : esc(label)}</h2>
+        <div id="radio-list" class="status">Tuning in…</div>`;
+      state.visibleTracks = [];
+      try {
+        const stations = await Sources.radioStations(state.radioQuery ? { name: state.radioQuery } : { tag: state.radioTag });
+        if (stale()) return;
+        $('#radio-list').outerHTML = stations.length ? cards(stations) : '<div class="empty">No stations found.</div>';
+      } catch {
+        if (stale()) return;
+        $('#radio-list').innerHTML = "Couldn't reach the radio directory. Check your connection.";
+      }
+      return;
+    }
+
+    if (v.startsWith('archive:')) {
+      const id = v.slice('archive:'.length);
+      main.innerHTML = `<h1>${esc(state.archiveTitle || 'Internet Archive')}</h1><div class="status">Loading…</div>`;
+      state.visibleTracks = [];
+      try {
+        const item = await Sources.archiveItem(id);
+        if (stale()) return;
+        main.innerHTML = listPage(item.title, ['Internet Archive', item.creator, `${item.tracks.length} tracks`].filter(Boolean).join(' · '),
+          trackRows(item.tracks), 'This recording has no playable MP3 files.',
+          `<button class="btn" data-view="search">‹ Back to search</button><a class="btn" href="https://archive.org/details/${encodeURIComponent(id)}" target="_blank" rel="noopener">View on archive.org</a>`);
+      } catch {
+        if (stale()) return;
+        main.innerHTML = '<h1>Internet Archive</h1><div class="empty">Couldn\'t load this recording. Check your connection.</div>';
       }
       return;
     }
@@ -290,11 +357,12 @@
       main.innerHTML = `
         <h1>Search</h1>
         <input id="search-input" class="search-box" type="search" placeholder="What do you want to listen to?" value="${esc(q)}" autocomplete="off">
-        <div id="search-results">${q ? '<div class="status">Searching…</div>' : '<div class="empty">Search for songs or artists.</div>'}</div>`;
+        <div class="chips">${SEARCH_SOURCES.map(([k, l]) => `<button class="chip${state.searchSource === k ? ' active' : ''}" data-search-source="${k}">${l}</button>`).join('')}</div>
+        <div id="search-results"></div>`;
       const input = $('#search-input');
       input.focus();
       input.setSelectionRange(q.length, q.length);
-      if (q) runSearch(q);
+      runSearch(q);
       return;
     }
 
@@ -347,19 +415,58 @@
       ${rows || `<div class="empty">${esc(emptyMsg)}</div>`}`;
   }
 
+  function jamendoSetup(message = '') {
+    return `
+      <div class="setup">
+        <h2>Connect Jamendo (free, one time)</h2>
+        ${message ? `<p class="notice">${esc(message)}</p>` : ''}
+        <p class="muted">Jamendo has 600,000+ full-length songs from independent artists, free and legal to stream. It needs a free Client ID; no payment or Premium.</p>
+        <ol class="steps">
+          <li>Open <a href="https://devportal.jamendo.com/" target="_blank" rel="noopener">devportal.jamendo.com</a> and sign up (free).</li>
+          <li>Create a new app with any name (website can be <code>https://github.com</code>).</li>
+          <li>Copy its <b>Client ID</b> and paste it here:</li>
+        </ol>
+        <div class="input-row">
+          <input id="jamendo-id" class="search-box" placeholder="Jamendo Client ID" value="${esc(Sources.jamendoClientId())}" autocomplete="off" spellcheck="false">
+          <button class="btn primary" data-action="jamendo-save">Save</button>
+        </div>
+      </div>`;
+  }
+
   let searchTimer;
+  let searchToken = 0;
   async function runSearch(q) {
     state.lastQuery = q;
     const box = $('#search-results');
     if (!box) return;
-    if (!q.trim()) { box.innerHTML = '<div class="empty">Search for songs or artists.</div>'; state.visibleTracks = []; return; }
+    const token = ++searchToken;
+    const source = state.searchSource;
+    state.visibleTracks = [];
+    if (source === 'jamendo' && !Sources.jamendoClientId()) { box.innerHTML = jamendoSetup(); return; }
+    const query = q.trim();
+    const hint = { audius: 'Search for songs or artists.', jamendo: 'Popular on Jamendo this week', archive: 'Most-played recordings on the Internet Archive' }[source];
+    if (!query && source === 'audius') { box.innerHTML = `<div class="empty">${hint}</div>`; return; }
     box.innerHTML = '<div class="status">Searching…</div>';
     try {
-      const results = await searchTracks(q.trim());
-      if (state.lastQuery !== q || state.view !== 'search') return;
-      box.innerHTML = results.length ? `<h2>Songs</h2>${trackRows(results)}` : `<div class="empty">No results for “${esc(q)}”.</div>`;
-    } catch {
-      if (state.lastQuery === q) box.innerHTML = "<div class=\"empty\">Couldn't reach the music service.</div>";
+      let html;
+      if (source === 'archive') {
+        const items = await Sources.archiveSearch(query, query ? {} : { collection: 'etree' });
+        if (token !== searchToken) return;
+        html = items.length ? `<h2>${query ? 'Recordings' : hint}</h2><div class="grid">${items.map((it) => `
+          <div class="card" data-open="archive:${esc(it.id)}" data-title="${esc(it.title)}" role="button" tabindex="0">
+            <img src="${esc(it.art)}" alt="" loading="lazy">
+            <div class="card-title">${esc(it.title)}</div><div class="card-sub">${esc(it.creator || 'Internet Archive')}</div>
+          </div>`).join('')}</div>` : '';
+      } else {
+        const results = source === 'jamendo' ? await (query ? Sources.jamendoSearch(query) : Sources.jamendoPopular()) : await searchTracks(query);
+        if (token !== searchToken) return;
+        html = results.length ? `<h2>${query ? 'Songs' : hint}</h2>${trackRows(results)}` : '';
+      }
+      if (state.view !== 'search') return;
+      box.innerHTML = html || `<div class="empty">No results for “${esc(query)}”.</div>`;
+    } catch (err) {
+      if (token !== searchToken) return;
+      box.innerHTML = err.code === 'JAMENDO_KEY' ? jamendoSetup(err.message) : `<div class="empty">Couldn't reach ${esc(SEARCH_SOURCES.find(([k]) => k === source)[1])}. Check your connection.</div>`;
     }
   }
 
@@ -449,7 +556,24 @@
     if (nav) { setView(nav.dataset.view); renderPlaylistLinks(); return; }
 
     const open = e.target.closest('[data-open]');
-    if (open) { setView(open.dataset.open); renderPlaylistLinks(); return; }
+    if (open) {
+      if (open.dataset.title) state.archiveTitle = open.dataset.title;
+      if (open.dataset.source) { state.searchSource = open.dataset.source; store.set('searchSource', state.searchSource); } setView(open.dataset.open); renderPlaylistLinks(); return; }
+
+    const link = e.target.closest('a[target=_blank]');
+    if (link && window.Capacitor?.isNativePlatform?.()) { e.preventDefault(); location.href = link.href; return; }
+
+    const radioTag = e.target.closest('[data-radio-tag]');
+    if (radioTag) { state.radioTag = radioTag.dataset.radioTag; state.radioQuery = ''; render(); return; }
+
+    const searchSource = e.target.closest('[data-search-source]');
+    if (searchSource) {
+      state.searchSource = searchSource.dataset.searchSource;
+      store.set('searchSource', state.searchSource);
+      document.querySelectorAll('[data-search-source]').forEach((b) => b.classList.toggle('active', b === searchSource));
+      runSearch($('#search-input')?.value || '');
+      return;
+    }
 
     const genre = e.target.closest('[data-genre]');
     if (genre) { state.genre = genre.dataset.genre; render(); return; }
@@ -467,6 +591,13 @@
       if (a === 'add') return showAddMenu(track, action);
       if (a === 'play-all') return playList(state.visibleTracks, 0);
       if (a === 'add-files') return $('#file-input').click();
+      if (a === 'jamendo-save') {
+        const id = $('#jamendo-id').value.trim();
+        if (!id) return toast('Paste your Jamendo Client ID first');
+        Sources.setJamendoClientId(id);
+        toast('Jamendo saved');
+        return runSearch($('#search-input')?.value || '');
+      }
       if (a === 'remove' || a === 'rename-playlist' || a === 'delete-playlist') {
         const p = state.playlists.find((x) => 'playlist:' + x.id === state.view);
         if (!p) return;
@@ -497,6 +628,15 @@
   });
 
   main.addEventListener('input', (e) => {
+    if (e.target.id === 'radio-input') {
+      clearTimeout(searchTimer);
+      const q = e.target.value.trim();
+      searchTimer = setTimeout(() => {
+        state.radioQuery = q;
+        render().then(() => { const el = $('#radio-input'); if (el) { el.focus(); el.setSelectionRange(q.length, q.length); } });
+      }, 450);
+      return;
+    }
     if (e.target.id !== 'search-input') return;
     clearTimeout(searchTimer);
     const q = e.target.value;
@@ -570,12 +710,12 @@
   });
 
   audio.addEventListener('timeupdate', () => {
-    if (seeking) return;
+    if (seeking || current()?.live) return;
     const d = audio.duration;
     seek.value = isFinite(d) && d > 0 ? (audio.currentTime / d) * 1000 : 0;
     $('#cur-time').textContent = fmt(audio.currentTime);
   });
-  audio.addEventListener('loadedmetadata', () => { $('#dur-time').textContent = fmt(audio.duration); });
+  audio.addEventListener('loadedmetadata', () => { if (!current()?.live) $('#dur-time').textContent = fmt(audio.duration); });
   audio.addEventListener('play', () => { $('#play').textContent = '⏸'; $('#play').title = 'Pause'; });
   audio.addEventListener('pause', () => { $('#play').textContent = '▶'; $('#play').title = 'Play'; });
   audio.addEventListener('ended', () => next(true));
@@ -584,9 +724,15 @@
   audio.addEventListener('error', () => {
     if (!audio.getAttribute('src')) return;
     if (++errorStreak >= Math.min(5, state.queue.length)) { toast("Couldn't play these tracks"); return; }
-    toast('Track unavailable, skipping…');
+    toast(current()?.live ? 'Station is off the air, trying the next one…' : 'Track unavailable, skipping…');
     setTimeout(() => next(true), 800);
   });
+
+  // Station logos and cover art are often missing; hide broken images instead of showing an icon.
+  document.addEventListener('error', (e) => {
+    if (e.target.id === 'np-art') e.target.removeAttribute('src');
+    else if (e.target.tagName === 'IMG' && e.target.closest('#main, #queue-list')) e.target.style.visibility = 'hidden';
+  }, true);
 
   // keyboard shortcuts (ignored while typing)
   document.addEventListener('keydown', (e) => {
@@ -611,6 +757,7 @@
     nativeApp.addListener('backButton', () => {
       if ($('#add-menu')) closeMenu();
       else if (!$('#queue-panel').classList.contains('hidden')) $('#close-queue').click();
+      else if (state.view.startsWith('archive:')) setView('search');
       else if (state.view !== 'home') { setView('home'); renderPlaylistLinks(); }
       else nativeApp.minimizeApp();
     });
