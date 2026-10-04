@@ -161,9 +161,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .copy-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
 .copy-row code { background: #242424; padding: 6px 10px; border-radius: 6px; font-size: 13px; word-break: break-all; color: var(--text); }
 .copy-row .search-box { flex: 1; min-width: 200px; }
-.notice { background: #2a2416; border: 1px solid #6b5a1e; border-radius: 8px; padding: 14px 16px; }
-.notice p { margin: 8px 0 0; }
-.muted { color: var(--muted); font-size: 14px; }
 .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
 .btn.primary:hover { transform: scale(1.03); }
 

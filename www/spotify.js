@@ -75,14 +75,8 @@
     if (!cfg.verifier) throw new SpotifyError('AUTH', 'Sign-in expired, please try again');
     await tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: cfg.verifier });
     delete cfg.verifier;
+    cfg.user = await api('/me');
     persist();
-    try {
-      cfg.user = await api('/me');
-      persist();
-    } catch (err) {
-      if (err.code === 'AUTH') throw err;
-      // Signed in, but Spotify refuses data requests; the Spotify tab explains why.
-    }
     return true;
   }
 
@@ -117,13 +111,10 @@
     }
     if (res.status === 204 || res.status === 202) return null;
     const text = await res.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch { /* Spotify sometimes answers errors in plain text */ }
+    const data = text ? JSON.parse(text) : null;
     if (!res.ok) {
       const reason = data?.error?.reason;
-      const msg = data?.error?.message || (data ? '' : text.trim().slice(0, 200)) || `Spotify request failed (${res.status})`;
-      // Spotify only lets development-mode apps work while the account that created the app has Premium.
-      if (/premium/i.test(msg) && /owner/i.test(msg)) throw new SpotifyError('OWNER_PREMIUM', msg);
+      const msg = data?.error?.message || `Spotify request failed (${res.status})`;
       if (reason === 'PREMIUM_REQUIRED' || (res.status === 403 && path.startsWith('/me/player'))) throw new SpotifyError('PREMIUM', 'Playback control needs Spotify Premium');
       if (reason === 'NO_ACTIVE_DEVICE' || (res.status === 404 && path.startsWith('/me/player'))) throw new SpotifyError('NO_DEVICE', 'Open Spotify on a device first');
       throw new SpotifyError(res.status === 403 ? 'FORBIDDEN' : 'API', msg);

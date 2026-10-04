@@ -34,9 +34,7 @@ top tracks, and search all of Spotify (the Search tab gets an **Audius / Spotify
   played by its own apps, so the Spotify app must be installed and logged in.
 - **Spotify Free:** you can browse and search; tapping a song opens it in the Spotify app.
 
-**One-time setup:** Spotify requires each app to have its own Client ID, and the Spotify account that creates it
-**must have Premium** (Spotify rejects every request from a development-mode app whose owner is on Spotify Free, with
-"Active premium subscription required for the owner of the app").
+**One-time setup:** Spotify requires each app to have its own Client ID.
 
 1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → **Create app**.
 2. Add the redirect URI(s): `com.tunely.app://callback` for the Android app, plus the web address where you open

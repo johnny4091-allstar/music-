@@ -207,8 +207,6 @@
     if (err.code === 'NO_DEVICE') {
       toast('Opening Spotify… then come back and tap the song again');
       if (t) setTimeout(() => openExternal(t.url), 900);
-    } else if (err.code === 'OWNER_PREMIUM') {
-      toast('Spotify needs Premium on the developer account. See the Spotify tab.');
     } else if (err.code === 'PREMIUM') {
       toast('Spotify Free: opening the song in the Spotify app');
       if (t) setTimeout(() => openExternal(t.url), 900);
@@ -451,11 +449,6 @@
       const [lists, top] = await Promise.allSettled([Spotify.playlists(), Spotify.topTracks()]);
       if (stale()) return;
       if ([lists, top].some((r) => r.status === 'rejected' && r.reason?.code === 'AUTH')) return render();
-      const blocked = [lists, top].find((r) => r.status === 'rejected' && r.reason?.code === 'OWNER_PREMIUM');
-      if (blocked) {
-        main.innerHTML = `<h1>Spotify</h1>${ownerPremiumNotice(blocked.reason.message)}`;
-        return;
-      }
       $('#sp-playlists').outerHTML = `<div class="grid">
           <div class="card" data-open="sp-liked" role="button" tabindex="0"><div class="ph" style="background:linear-gradient(135deg,#450af5,#8e8ee5);color:#fff">♥</div>
             <div class="card-title">Liked Songs</div><div class="card-sub">On Spotify</div></div>
@@ -484,7 +477,6 @@
       } catch (err) {
         if (stale()) return;
         if (err.code === 'AUTH') return setView('spotify');
-        if (err.code === 'OWNER_PREMIUM') { main.innerHTML = `<h1>${esc(title)}</h1>${ownerPremiumNotice(err.message)}`; return; }
         main.innerHTML = `<h1>${esc(title)}</h1><div class="empty">${esc(err.message)}${err.code === 'FORBIDDEN' ? ' (Spotify only lets apps open playlists you own or follow.)' : ''}</div>`;
       }
       return;
@@ -526,28 +518,6 @@
         'This playlist is empty. Use ＋ on any song to add it here.',
         '<button class="btn" data-action="rename-playlist">Rename</button><button class="btn" data-action="delete-playlist">Delete</button>');
     }
-  }
-
-  function ownerPremiumNotice(spotifyMsg) {
-    return `
-      <div class="sp-connect">
-        <div class="notice">
-          <b>Spotify is blocking this connection.</b>
-          <p>Spotify only allows apps like Tunely to use its data while the Spotify account that <b>created the developer app</b>
-          (the Client ID) has an active <b>Premium</b> subscription. This is a rule on Spotify's side; Tunely can't change it.</p>
-          <p class="muted">Spotify said: “${esc(spotifyMsg)}”</p>
-        </div>
-        <h2>How to fix it</h2>
-        <ol class="sp-steps">
-          <li>Upgrade the Spotify account you used on <b>developer.spotify.com</b> to Premium, then tap <b>Try again</b>. It can take a few minutes for Spotify to notice.</li>
-          <li>Or create the developer app with a Spotify account that already has Premium, then tap <b>Use a different Client ID</b> and paste the new one.</li>
-        </ol>
-        <p class="muted">Free music from Audius and your own files keep working in the meantime.</p>
-        <div class="header-row">
-          <button class="btn primary" data-view="spotify">Try again</button>
-          <button class="btn" data-action="sp-logout">Use a different Client ID</button>
-        </div>
-      </div>`;
   }
 
   function spotifyConnectPage() {
@@ -888,7 +858,7 @@
     if (!Spotify.isCallbackUrl(url)) return;
     try {
       await Spotify.handleRedirect(url);
-      if (Spotify.user()) toast('Spotify connected');
+      toast('Spotify connected');
     } catch (err) {
       toast(err.message);
     }
