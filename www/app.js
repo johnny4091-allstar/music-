@@ -604,6 +604,18 @@
     navigator.mediaSession.setActionHandler('previoustrack', prev);
   }
 
+  // Android back button (only inside the app): go back to Home, then send the app
+  // to the background instead of closing it so the music keeps playing.
+  const nativeApp = window.Capacitor?.Plugins?.App;
+  if (nativeApp) {
+    nativeApp.addListener('backButton', () => {
+      if ($('#add-menu')) closeMenu();
+      else if (!$('#queue-panel').classList.contains('hidden')) $('#close-queue').click();
+      else if (state.view !== 'home') { setView('home'); renderPlaylistLinks(); }
+      else nativeApp.minimizeApp();
+    });
+  }
+
   // ---------- start ----------
   syncModeButtons();
   renderPlaylistLinks();

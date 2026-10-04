@@ -1,0 +1,8 @@
+{
+  "appId": "com.tunely.app",
+  "appName": "Tunely",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#121212"
+  }
+}
