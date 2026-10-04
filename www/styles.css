@@ -151,6 +151,19 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .empty { color: var(--muted); padding: 24px 0; }
 .status { color: var(--muted); padding: 12px 0; }
 
+/* Spotify */
+.sp-dot { width: 14px; height: 14px; border-radius: 50%; background: #1db954; display: inline-block; flex-shrink: 0; }
+.sp-connect { max-width: 640px; line-height: 1.5; }
+.sp-connect a { color: var(--accent); }
+.sp-notes, .sp-steps { padding-left: 20px; color: var(--muted); }
+.sp-notes b, .sp-steps b { color: var(--text); }
+.sp-steps li { margin-bottom: 10px; }
+.copy-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+.copy-row code { background: #242424; padding: 6px 10px; border-radius: 6px; font-size: 13px; word-break: break-all; color: var(--text); }
+.copy-row .search-box { flex: 1; min-width: 200px; }
+.btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn.primary:hover { transform: scale(1.03); }
+
 /* Player */
 .player {
   height: calc(var(--player-h) + var(--safe-bottom));
@@ -199,7 +212,7 @@ input[type=range] { accent-color: var(--accent); cursor: pointer; }
   .sidebar { width: 100%; padding: 8px; border-radius: 0; overflow: visible; }
   .brand, .sidebar-section { display: none; }
   .sidebar nav { display: flex; }
-  .nav-btn { justify-content: center; gap: 6px; font-size: 14px; white-space: nowrap; }
+  .nav-btn { justify-content: center; gap: 4px; font-size: 13px; white-space: nowrap; padding: 10px 4px; }
   .main { border-radius: 0; padding: 16px; }
   .queue-panel { position: fixed; inset: var(--safe-top) 0 calc(var(--player-h) + var(--safe-bottom)) 0; width: auto; z-index: 5; border-radius: 0; }
   .player { grid-template-columns: 1fr auto; grid-template-rows: auto auto; padding: 8px 16px calc(8px + var(--safe-bottom)); gap: 4px; }
