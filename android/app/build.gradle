@@ -1,5 +1,8 @@
 apply plugin: 'com.android.application'
 
+// CI passes VERSION_CODE (the build number) so each new APK installs as an update over the old one
+def tunelyVersionCode = (System.getenv("VERSION_CODE") ?: "1").toInteger()
+
 android {
     namespace = "com.tunely.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,9 +10,8 @@ android {
         applicationId "com.tunely.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // CI passes VERSION_CODE so each new APK installs as an update over the old one
-        versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()
-        versionName "1.0." + (System.getenv("VERSION_CODE") ?: "0")
+        versionCode tunelyVersionCode
+        versionName "1.0.${tunelyVersionCode}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
